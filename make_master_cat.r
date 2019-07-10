@@ -1,17 +1,37 @@
 library('argparser')
 
 
-main <- function( master_cat, outdir='/mnt/vardy/leah/likelihood_ratio/', my_bands=c('J','H','Ks'), band_suffix='', id_col='UID', ra_col='RAcen', dec_col='Deccen', halo_col='Mask', sgcol='SGsep', mag_col_to_use='mag', mag_err_col_to_use='mag_err' ){
+main <- function( master_cat, config_file='lr_config.txt', stilts_cmd='stilts' ){
+
+	## read the configuration file
+	cat( 'Reading configuration file ...' )
+	A <- read.table( config_file, stringsAsFactors=FALSE, header=FALSE )
+	outdir <- A$V2[which(A$V1 == 'outdir')]
+	bands <- A$V2[which(A$V1 == 'bands')]
+	my_bands <- strsplit(bands, ',')[[1]]
+	id_col <- A$V2[which(A$V1 == 'id_col')]
+	ra_col <- A$V2[which(A$V1 == 'ra_col')]
+	dec_col <- A$V2[which(A$V1 == 'dec_col')]
+	halo_col <- A$V2[which(A$V1 == 'halo_col')]
+	sg_col <- A$V2[which(A$V1 == 'sg_col')]
+	mag_col <- A$V2[which(A$V1 == 'mag_col')]
+	mag_err_col <- A$V2[which(A$V1 == 'mag_err_col')]
+	cat( ' configuration complete.\n' )
 
 
 	## basic columns to keep
-	basic_cols <- c( id_col, ra_col, dec_col, halo_col, sgcol )
+	basic_cols <- c( id_col, ra_col, dec_col, halo_col, sg_col )
 
-	## magnitudes -- may need to paste these in a different order
-	keep_bands <- paste( mag_col_to_use, '_', my_bands, band_suffix, sep='' )
-	keep_band_errs <- paste( mag_err_col_to_use, '_', my_bands, band_suffix, sep='' )
+	## magnitude columns
+	keep_bands <- c()
+	keep_bands_err <- c()
+	for ( my_band in my_bands ){
+		keep_bands <- c( keep_bands, gsub( 'X', my_band, mag_col ) )
+		keep_bands_err <- c( keep_bands_err, gsub( 'X', my_band, mag_err_col ) )
+	}
 
 	## prepare stilts commands
+	cat( 'Preparing STILTS command ... \n' )
 	## calculate SNR
 	snr_cmd <- c()
 	snr_cols <- c()
@@ -19,36 +39,32 @@ main <- function( master_cat, outdir='/mnt/vardy/leah/likelihood_ratio/', my_ban
 		
 		colname <- paste( keep_bands[xx], '_SNR', sep='' )
 		snr_cols <- c( snr_cols, colname )
-		snr_cmd <- c( snr_cmd, paste( " cmd=\'addcol ", colname, " 1.08574/", keep_band_errs[xx], "\'",  sep='' ) )
+		snr_cmd <- c( snr_cmd, paste( " cmd=\'addcol ", colname, " 1.08574/", keep_bands_err[xx], "\'",  sep='' ) )
 	}
 
 	## update the keep columns
-	keep_cols <- c( basic_cols, keep_bands, keep_band_errs, snr_cols )
+	keep_cols <- c( basic_cols, keep_bands, keep_bands_err, snr_cols )
 
 	outtmp <- strsplit( master_cat, '/' )[[1]]
-	outcat <- paste( outdir, outtmp[length(outtmp)], sep='' )
+	outcat <- paste( outdir, outtmp[length(outtmp)], sep='/' )
 	outcat <- gsub('.fits', '_master.fits', outcat )
 	
 	## run stilts
-	ss <- paste( "stilts tpipe in=", master_cat, " out=", outcat, " omode=out ", paste( snr_cmd, collapse='' ), ' cmd=\'keepcols "', paste( keep_cols, collapse=' ' ), '"', "\' ", sep='' )
+	ss <- paste( stilts_cmd, " tpipe in=", master_cat, " out=", outcat, " omode=out ", paste( snr_cmd, collapse='' ), ' cmd=\'keepcols "', paste( keep_cols, collapse=' ' ), '"', "\' ", sep='' )
+	cat( 'Running the following command:\n' )
+	cat( ss )
+	cat( '\n' )
 	system( ss )
+	cat( 'Master cat finished: ', outcat, '\n' )
 
 }
 
 p <- arg_parser("prepare catalogue for likelihood ratio fitting")
 p <- add_argument( p, "master_cat", help="base catalogue to start with" )
-p <- add_argument( p, "--outdir", help="out directory to store the processed catalogue", default="/mnt/vardy/leah/likelihood_ratio/", type="string" )
-p <- add_argument( p, "--mybands", help="bands to use for LR matching", default=c('J','H','Ks'))
-p <- add_argument( p, "--band_suffix", help="suffix for bands -- implies aperture", default="", type="string" )
-p <- add_argument( p, "--idcol", help="ID column name", default="UID", type="string" )
-p <- add_argument( p, "--racol", help="RA column name", default="RAcen", type="string" )
-p <- add_argument( p, "--deccol", help="Dec column name", default="Deccen", type="string" )
-p <- add_argument( p, "--halo", help="Halo Mask Column", default="Mask", type="string" )
-p <- add_argument( p, "--sgsep", help="star galaxy separation Column", default="SGsep", type="string" )
-p <- add_argument( p, "--magcol", help="mag column name", default="mag", type="string" )
-p <- add_argument( p, "--magerrcol", help="mag error column name", default="mag_err", type="string" )		  
+p <- add_argument( p, "--config_file", help="configuration file (see example)" )
+p <- add_argument( p, "--stilts_cmd", help="executable for STILTS if not stilts", default="stilts" )
 
 argv <- parse_args( p )
 
-main( argv$master_cat, outdir=argv$outdir, my_bands=argv$mybands,  band_suffix=argv$band_suffix, id_col=argv$idcol, ra_col=argv$racol, dec_col=argv$deccol, halo_col=argv$halo, sgcol=argv$sgsep, mag_col_to_use=argv$magcol, mag_err_col_to_use=argv$magerrcol )
+main( argv$master_cat, config_file=argv$config_file, stilts_cmd=argv$stilts_cmd )
 
