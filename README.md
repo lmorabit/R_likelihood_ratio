@@ -11,8 +11,8 @@ The software in this repository also makes use of the Starlink Tables Infrastruc
 
 Before running, several packages need to be installed on R.  This is very easy to do -- simply start R anywhere on your system and run the *install.packages()* command. Here is an example:
 
-$R  
-\> install.packages('argparser')
+> $R  
+> \> install.packages('argparser')
 
 
 ... and then follow the onscreen instructions. 
