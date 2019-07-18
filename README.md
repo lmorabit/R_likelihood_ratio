@@ -1,29 +1,23 @@
-# R_likelihood_ratio
-An R code for likelihood ratio matching between radio and multi-wavelength surveys, based on the methods described in, e.g. McAlpine et al. (2012).
+# likelihood_ratio
+A python code for likelihood ratio matching between radio and multi-wavelength surveys, based on the methods described in, e.g. McAlpine et al. (2012).
 
 **Software requirements**
 
-R is a free, widely distributed software that is usually available on UNIX systems.  Please see https://www.r-project.org/ for more details. 
-
 The software in this repository also makes use of the Starlink Tables Infrastructure Library Tool Set (STILTS), which is a command line scriptable version of topcat.  Please see http://www.star.bris.ac.uk/~mbt/stilts/sun256/sun256.html for installation instructions. 
 
-**R packages**
+**python libraries**
 
-Before running, several packages need to be installed on R.  This is very easy to do -- simply start R anywhere on your system and run the *install.packages()* command. Here is an example:
+This software uses the following python libraries:
 
-> $R  
-> \> install.packages('argparser')
-
-
-... and then follow the onscreen instructions. 
-
-Please do this for the following packages:
-
-*argparser*
+argparse, numpy, pandas, os, astropy, scipy
 
 **Preparing to run**
 
-1. Mask the radio data based on the multi-wavelength data. I have not included this step since there are many ways to do this (e.g., Aladin's MOC, using a fits mask, ds9 regions, etc.). Your radio catalogue should not include any sources which are outside of or straddle the boundary for the multi-wavelength data, *including halo regions*. 
+1. You will need the following, in binary fits table foramt:  
+
+- Multi-wavelength catalogue with magnitudes for the bands you wish to match  
+- Radio catalogue  
+- Mask image for the multi-wavelength data
 
 2. Set up the configuration file. Please look at the example configuration file and update the parameters as appropriate. This is meant for you to be able to use the software flexibly for catalogues where the column names might be slightly different (e.g., RA vs. ALPHA_J2000, etc.). Please surround strings with quotation marks. The following parameters are set in the configuration file:
 
@@ -40,6 +34,6 @@ Please do this for the following packages:
 
 **Running the software**
 
-1. Set up the configuration file with the correct parameters.
-2. Run *make_master_cat.r*  to generate a slimmer version of the catalogue with added SNR information that will be used.
-3. 
+run  
+> likelihood_ratio_matching.py -h  
+to see the optional and required inputs.
