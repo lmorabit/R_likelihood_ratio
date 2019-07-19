@@ -87,12 +87,20 @@ def get_unmasked_area( mask_image ):
     print( 'Area is %s (in arcsec^2)'%str(area_asec) )
     return( area_asec )
 
-def make_master_cat( master_cat, stilts_cmd='stilts', overwrite=False, outdir='.', my_bands='J,H,Ks', id_col='UID', ra_col='RA', dec_col='DEC', mask_col='Mask', sg_col='SGsep', mag_col='mag_X', mag_err_col='mag_err_X' ):
+def make_master_cat( multiwave_cat, overwrite=False, outdir='.', my_bands='J,H,Ks', id_col='UID', ra_col='RA', dec_col='DEC', mask_col='Mask', sg_col='SGsep', mag_col='mag_X', mag_err_col='mag_err_X' ):
 
     ## check if output file exists
-    outtmp = master_cat.split('/')[-1]
+    outtmp = multiwave_cat.split('/')[-1]
     outcat = os.path.join( outdir, outtmp )
     outcat = outcat.replace('.fits', '_master.fits' )
+
+    ## read in catalogue
+    mw_hdul = fits.open( multiwave_cat )
+    mw_dat = mw_hdul[1].data
+    mw_hdr = mw_hdul[1].header
+    ## convert to table
+    mw_tab = Table( mw_dat )
+    mw_hdul.close()
 
     if os.path.isfile( outcat ) and not overwrite:
         print( 'File already exists and overwrite is not set to true, exiting.' )
@@ -103,42 +111,31 @@ def make_master_cat( master_cat, stilts_cmd='stilts', overwrite=False, outdir='.
         # magnitude columns
         keep_bands = [ mag_col.replace('X', my_band) for my_band in my_bands ]
         keep_bands_err = [ mag_err_col.replace('X', my_band) for my_band in my_bands ]
+       
+        ## make a smaller table with only the columns we want
+        keep_cols = basic_cols + keep_bands + keep_bands_err
+        new_tab = mw_tab[keep_cols]
 
-        # prepare stilts command
-        print( 'Preparing stilts command ...' )
-        ss = stilts_cmd + ' tpipe in=' + master_cat + ' out=' + outcat + ' omode=out '        
-
-        # command to calculate SNR
-        print( ' ... calculating SNR' )
-        snr_cols = [ keep_band + '_SNR' for keep_band in keep_bands ]
-        snr_cmd = ''
-        for xx, snr_col in enumerate(snr_cols):
-            snr_cmd += " cmd=\'addcol " + snr_col + " 1.08574/" + keep_bands_err[xx] + "\'"
-
-        # select non-halo objects
+        ## select non-halo objects
         print( ' ... removing objects where '+mask_col+' is 1' )
-        halo_cmd = " cmd=\'select "+mask_col+"==0\'"
+        non_halo_idx = np.where(new_tab[mask_col] == 0)[0]
+        new_tab = new_tab[non_halo_idx]
 
-        # select only galaxies
+        ## select only galaxies
         print( ' ... selecting galaxies ('+sg_col+' is 1)' )
-        sg_cmd = " cmd=\'select "+sg_col+"==1\'"
+        galaxy_idx = np.where(new_tab[sg_col] == 1)[0]
+        new_tab = new_tab[galaxy_idx]
+   
+        ## add signal to noise columns
+        snr_cols = [ keep_band + '_SNR' for keep_band in keep_bands ]
+        for keep_band_err, snr_col in zip(keep_bands_err, snr_cols):
+            new_tab[snr_col] = 1.08574 / new_tab[keep_band_err]
 
-        ## update the keep columns
-        keep_cols = basic_cols + keep_bands + keep_bands_err + snr_cols
+        ## write to file
+        new_fits = fits.BinTableHDU( data=new_tab )
+        new_fits.writeto( outcat, overwrite=overwrite )
 
-        ## make the final stilts command
-        ss += snr_cmd
-        ss += halo_cmd
-        ss += sg_cmd
-        ss += " cmd='\keepcols \""
-        for keep_col in keep_cols:
-            ss += keep_col+' '
-        ss = ss.rstrip(' ')
-        ss +='"\''
-        print( ' ... now running stilts with the following command: ')
-        print( ss )
-        os.system( ss )
-        print( 'Master catalogue created.' )
+        print( 'Master catalogue %s created.'%outcat )
 
         return( outcat )
 
@@ -163,7 +160,7 @@ def make_mag_bins( magnitudes ):
         mag_bins = np.insert( mag_bins, 0, np.min( mag_bins )-0.4 )
     return( mag_bins )
 
-def match_magnitudes( band, band_data, radio_data, outfile='', ra_col='RA', dec_col='DEC', mag='', r_max=0.0, overwrite=True ):
+def make_match_magnitudes( band, band_data, radio_data, outfile='', ra_col='RA', dec_col='DEC', mag='', r_max=0.0, overwrite=True ):
     
     ## get number of radio sources
     n_radio_sources = radio_data.shape[0]
@@ -375,9 +372,10 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
     return( outfile )
 
 
-def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', stilts_cmd='stilts', overwrite=False, snr_cut=5.0, LR_threshold=0.8 ):
+def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', overwrite=False, snr_cut=5.0, LR_threshold=0.8 ):
 
     ## read the configuration file and parse
+    print( 'Reading in configuration file.' )
     config_params = pandas.read_table( config_file, delim_whitespace=True ).replace("'","",regex=True)
     outdir = config_params['value'][np.where( config_params['parameter'] == 'outdir' )[0][0]]
     bands = config_params['value'][np.where( config_params['parameter'] == 'bands' )[0][0]]
@@ -396,7 +394,8 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', sti
 
 
     ## From the multiwavelength catalogue, make a master catalogue with some cuts and keeping only some of the catalogues
-    master_cat = make_master_cat( multiwave_cat, stilts_cmd=stilts_cmd, overwrite=overwrite, outdir=outdir, my_bands=my_bands, id_col=id_col, ra_col=ra_col, 
+    print( 'Making a master catalogue.'  )
+    master_cat = make_master_cat( multiwave_cat, overwrite=overwrite, outdir=outdir, my_bands=my_bands, id_col=id_col, ra_col=ra_col, 
             dec_col=dec_col, mask_col=mask_col, sg_col=sg_col, mag_col=mag_col, mag_err_col=mag_err_col )
 
     ## read in the master catalogue
@@ -446,7 +445,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', sti
 
         ## find the matched magnitudes -- this takes a long time so it first checks if the file already exists
         mag_file = 'matched_mags_' + my_band + '_r' + str( round( r_max, ndigits=2 ) ) + '_SNR' + str( snr_cut ) + '.dat'
-        m_mags = match_magnitudes( my_band, band_dat, radio_dat, outfile=mag_file, ra_col=ra_col, dec_col=dec_col, mag=band_col, r_max=r_max, overwrite=overwrite )
+        m_mags = make_match_magnitudes( my_band, band_dat, radio_dat, outfile=mag_file, ra_col=ra_col, dec_col=dec_col, mag=band_col, r_max=r_max, overwrite=overwrite )
         match_magnitudes = np.array(m_mags['matched_mag'].tolist())
         match_radio_sources = np.array(m_mags['radio_id'].tolist())
 
@@ -474,11 +473,10 @@ if __name__ == "__main__":
     parser.add_argument('multiwave_cat', type=str, help='input catalogue from which to generate a master catalogue' )
     parser.add_argument('radio_cat', type=str, help='input radio catalogue' )
     parser.add_argument('mask_image', type=str, help='Mask image where 1 is masked, 0 is unmasked' )
-    parser.add_argument('--config_file', type=str, help='configuration file', default='lr_config.txt' )
-    parser.add_argument('--stilts_cmd', type=str, help='STILTS executable command', default='stilts' )
+    parser.add_argument('--config_file', type=str, help='configuration file (defaukt lf_config.txt)', default='lr_config.txt' )
     parser.add_argument('--overwrite', action='store_true', help='set if you want to overwite a catalogue with the same name' )
-    parser.add_argument('--snr_cut', type=float, default=5.0, help='SNR cut (applied individually to each band' )
-    parser.add_argument('--LR_thresh', type=float, default=0.8, help='threshold for LR' )
+    parser.add_argument('--snr_cut', type=float, default=5.0, help='SNR cut (applied individually to each band, default 5)' )
+    parser.add_argument('--LR_thresh', type=float, default=0.8, help='threshold for LR (default 0.8)' )
     args = parser.parse_args()
 
-    make_master_cat( args.multiwave_cat, args.radio_cat, args.mask_image, config_file=args.config_file, stilts_cmd=args.stilts_cmd, overwrite=args.overwrite, snr_cut=args.snr_cut, LR_threshold=args.LR_thresh )
+    main( args.multiwave_cat, args.radio_cat, args.mask_image, config_file=args.config_file, overwrite=args.overwrite, snr_cut=args.snr_cut, LR_threshold=args.LR_thresh )
