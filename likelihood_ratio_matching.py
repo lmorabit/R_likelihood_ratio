@@ -6,6 +6,9 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.table import Table, Column
 from scipy.optimize import curve_fit
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
 
 def cenang( a1, d1, a2, d2 ):
 
@@ -418,6 +421,10 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
     ## where sigma_pos is less than 0.5 arcsec, make it 0.5 arcsec
     sigma_idx = np.where( sigma_pos < 0.5 )[0]
     sigma_pos[sigma_idx] = 0.5
+
+    ## make a plot of the sky coverage
+    
+    
 
     for my_band in my_bands:
 
