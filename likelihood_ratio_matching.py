@@ -214,7 +214,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
 
 
     ## first check if the number of no counterparts has already been found
-    f_file = 'Fleuren_no_counterparts_' + band + '.dat'
+    f_file = band + '_Fleuren_no_counterparts.dat'
 
     if os.path.isfile( f_file ) and not overwrite:
         print( 'Blanks already found for this band, reading file.' )
@@ -226,7 +226,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
 
         ## check if a random radio catalogue already exists
         n_srcs = radio_dat.shape[0]
-        f_rand_file = 'Fleuren_random_catalogue_' + band + '.fits'
+        f_rand_file = band + '_Fleuren_random_catalogue.fits'
         if os.path.isfile( f_rand_file ) and not overwrite:
             print( 'Random radio catalogue already exists, will use.' )
         else:
@@ -299,7 +299,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
     t2['parameter'] = np.array(['Q0','sig'])
     t2['value'] = coeff
     t2['1sig'] = coeff_err
-    t2.write( 'Q0_estimates_'+band+'.dat', format='ascii', overwrite=overwrite )
+    t2.write( band+'_Q0_estimates.dat', format='ascii', overwrite=overwrite )
 
     return( coeff[0], coeff_err[0] )
 
@@ -338,7 +338,6 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
                 tmpval = qm_nm_tmp*f_r[yy]
                 LR.append(tmpval)
             LR = np.array(LR)
-            print( LR )
 
             ## calculate the reliability
             LR_reliability = LR / ( np.sum( LR ) + 1. - q0 )
@@ -444,7 +443,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         nm = nm_counts / area_asec
 
         ## find the matched magnitudes -- this takes a long time so it first checks if the file already exists
-        mag_file = 'matched_mags_' + my_band + '_r' + str( round( r_max, ndigits=2 ) ) + '_SNR' + str( snr_cut ) + '.dat'
+        mag_file = my_band + '_matched_mags_r' + str( round( r_max, ndigits=2 ) ) + '_SNR' + str( snr_cut ) + '.dat'
         m_mags = make_match_magnitudes( my_band, band_dat, radio_dat, outfile=mag_file, ra_col=ra_col, dec_col=dec_col, mag=band_col, r_max=r_max, overwrite=overwrite )
         match_magnitudes = np.array(m_mags['matched_mag'].tolist())
         match_radio_sources = np.array(m_mags['radio_id'].tolist())
