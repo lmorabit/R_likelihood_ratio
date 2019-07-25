@@ -1,9 +1,14 @@
+parameter	value
 outdir		'.'
 bands		'J,H,Ks'
 id_col		'UID'
 ra_col		'RAcen'
 dec_col		'Deccen'
-halo_col	'Mask'
-sgcol		'SGsep'
+mask_col	'Mask'
+sg_col		'SGsep'
 mag_col		'mag_Xt'
 mag_err_col	'mag_err_Xt'
+flux_col	'Total_flux'
+flux_err_col	'E_Total_flux'
+beam_size	5.0
+cal_errors	0.1
