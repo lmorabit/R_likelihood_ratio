@@ -34,7 +34,7 @@ def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=Tru
     mycat = fits.open( catalogue )
     data = mycat[1].data
     ## generate pairs of RA, Dec
-    ra_dec_vals = zip( data[ra_col], data[dec_col] )
+    ra_dec_vals = list( zip( data[ra_col], data[dec_col] ) )
     
     ## open the mask WCS (this should exist in the header
     mymask_WCS = WCS( mask_image )
@@ -140,7 +140,7 @@ def make_master_cat( multiwave_cat, overwrite=False, outdir='.', my_bands='J,H,K
 
         print( 'Master catalogue %s created.'%outcat )
 
-        return( outcat )
+    return( outcat )
 
 def calculate_positional_errors( data, beam_size=5., cal_errors=0.1, flux_col='Total_flux', flux_err_col='E_Total_flux' ):
 
@@ -221,7 +221,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
 
     if os.path.isfile( f_file ) and not overwrite:
         print( 'Blanks already found for this band, reading file.' )
-        t1 = ascii.read( f_file )
+        t1 = Table.read( f_file, format='ascii' )
     else:
         ## first find the number of radio sources with no counterparts
         ##  (as a function of radius)
@@ -302,7 +302,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
     t2['parameter'] = np.array(['Q0','sig'])
     t2['value'] = coeff
     t2['1sig'] = coeff_err
-    t2.write( band+'_Q0_estimates.dat', format='ascii', overwrite=overwrite )
+    t2.write( band+'_Q0_estimates.dat', format='ascii', overwrite=True )
 
     return( coeff[0], coeff_err[0] )
 
@@ -423,7 +423,13 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
     sigma_pos[sigma_idx] = 0.5
 
     ## make a plot of the sky coverage
-    
+    ## first get a colormap
+    cmap = matplotlib.cm.get_cmap('magma')
+    im = aplpy.FITSFigure( mask_image )
+    im.show_markers( master_dat[ra_col], master_dat[dec_col], marker=',', facecolor='0.4', edgecolor='0.4' )
+    im.show_markers( radio_dat['RA'], radio_dat['DEC'], marker='*', facecolor=cmap(0.75), edgecolor=cmap(0.15), linewidth=0.3, s=70  )
+    im.save('Sky_coverage.png')
+    im.close()
     
 
     for my_band in my_bands:
@@ -467,7 +473,47 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         qm = real_m / np.sum( real_m ) * Q0
 
         ## find ratio of q(m)/n(m) -- the expected divided by the background
-        qm_nm = qm / nm
+	## if there are values of zero then there will be issues
+	qm_nm = [ qq/nn if not  qq == 0 and not nn == 0 else 0. for qq, nn in zip( qm, nm ) ]
+	qm_nm = np.array( qm_nm )
+
+	log_total = [ np.log10( tt ) if not tt==0 else 0. for tt in total_m  ]
+	log_total = np.array( log_total )
+
+	log_real = [ np.log10( rr ) if not rr<=0 else 0. for rr in real_m ]
+	log_real = np.array( log_real )
+
+	log_bkg = [ np.log10( bb ) if not bb <= 0 else 0. for bb in background ]
+	log_bkg = np.array( background )
+
+	log_qm_nm = [ np.log10( qn ) if not qn <= 0 else 0. for qn in qm_nm ]
+	log_qm_nm = np.array( log_qm_nm )
+
+	log_qm = [ np.log10( qq ) if not qq <= 0 else 0. for qq in qm ]
+	log_qm = np.array( log_qm )
+	
+
+	## make some plots
+	mag_bin_mids = mag_bins[1:] + 0.2
+	fig, axs = plt.subplots( 3, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
+	## plot 1
+	axs[0].step( mag_bin_mids, log_total, where='mid', label='Total', color='0.5', linewidth=2 )
+	axs[0].step( mag_bin_mids, log_real, where='mid', label='Real', linewidth=2, color='black' )
+	axs[0].step( mag_bin_mids, log_bkg, where='mid', label='Background', linewidth=2, linestyle='dashed', color='black' )
+	## plot 2
+	axs[1].step( mag_bin_mids, log_qm_nm, where='mid' )
+	## plot 3
+	axs[2].step( mag_bin_mids, log_qm, where='mid' )
+	## axis labels
+	axs[0].set( ylabel='log(N(cparts))' )
+	axs[1].set( ylabel='log(P(m))' )
+	axs[2].set( xlabel=band+' magnitudes', ylabel='log(q(m))' )
+	## add legend
+	axs[0].legend()
+	## adjust ylimits
+	axs
+	fig.savefig( band + '_magnitude_distributions.png' )
+
 
         ## Now calculate the LR and reliability
         final_file = LR_and_reliability( my_band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r_max, Q0, LR_threshold=LR_threshold, ra_col=ra_col, dec_col=dec_col, mag_col=mag_col, id_col=id_col )
