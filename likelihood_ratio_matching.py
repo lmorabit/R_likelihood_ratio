@@ -9,6 +9,7 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
+import aplpy
 
 def cenang( a1, d1, a2, d2 ):
 
@@ -58,8 +59,6 @@ def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=Tru
             flags.append( mask_vals[int(y),int(x)] )
         else:
             flags.append(1.0)
-
-#    flags = [ mask_vals[int(y),int(x)] for x, y in pix_coords ]
 
     ## make new data where unmasked
     unmasked_idx = np.where( np.array(flags) == 0.0 )
@@ -304,6 +303,26 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
     t2['1sig'] = coeff_err
     t2.write( band+'_Q0_estimates.dat', format='ascii', overwrite=True )
 
+    ## and plot
+    n_srcs = radio_dat.shape[0]
+    plt.plot( t1['Radius'], t1['Random']/n_srcs, linewidth=2, color='0.5', label='Random' )
+    plt.plot( t1['Radius'], t1['Real']/n_srcs, linewidth=2, color='black', label='Real' )
+    yvals = q0_function( t1['Radius'], coeff[0], coeff[1] )
+    plt.plot( t1['Radius'], yvals, linewidth=2, color='red', label='Fit' )
+    plt.plot( t1['Radius'], t1['Ratio'], marker='o', color='blue', label='Ratio' )
+    plt.legend()
+    plt.savefig( band + '_q0_estimate.png' )
+    plt.close()
+
+    radio_dat = fits.open( radio_dat )
+    n_srcs = radio_dat[1].data.shape[0]
+    plt.plot( t1['Radius'], t1['Random']/n_srcs, linewidth=2, color='0.5', label='Random' )
+    plt.plot( t1['Radius'], t1['Real']/n_srcs, linewidth=2, color='black', label='Real' )
+    yvals = q0_function( t1['Radius'], coeff[0], coeff[1] )
+    plt.plot( t1['Radius'], yvals, linewidth=2, color='red', label='Fit' )
+    plt.plot( t1['Radius'], t1['Ratio'], marker='o', color='blue', label='Ratio' )
+    plt.savefig( band + '_q0_estimate.png' )
+
     return( coeff[0], coeff_err[0] )
 
 def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r_max, q0, LR_threshold=0.8, ra_col='RA', dec_col='DEC', mag_col='', id_col='' ):
@@ -474,49 +493,71 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
 
         ## find ratio of q(m)/n(m) -- the expected divided by the background
 	## if there are values of zero then there will be issues
-	qm_nm = [ qq/nn if not  qq == 0 and not nn == 0 else 0. for qq, nn in zip( qm, nm ) ]
-	qm_nm = np.array( qm_nm )
+        qm_nm = [ qq/nn if not  qq == 0 and not nn == 0 else 0. for qq, nn in zip( qm, nm ) ]
+        qm_nm = np.array( qm_nm )
 
-	log_total = [ np.log10( tt ) if not tt==0 else 0. for tt in total_m  ]
-	log_total = np.array( log_total )
+        log_total = [ np.log10( tt ) if not tt==0 else 0. for tt in total_m  ]
+        log_total = np.array( log_total )
 
-	log_real = [ np.log10( rr ) if not rr<=0 else 0. for rr in real_m ]
-	log_real = np.array( log_real )
+        log_real = [ np.log10( rr ) if not rr<=0 else 0. for rr in real_m ]
+        log_real = np.array( log_real )
 
-	log_bkg = [ np.log10( bb ) if not bb <= 0 else 0. for bb in background ]
-	log_bkg = np.array( background )
+        log_bkg = [ np.log10( bb ) if not bb <= 0 else 0. for bb in background ]
+        log_bkg = np.array( background )
 
-	log_qm_nm = [ np.log10( qn ) if not qn <= 0 else 0. for qn in qm_nm ]
-	log_qm_nm = np.array( log_qm_nm )
+        log_qm_nm = [ np.log10( qn ) if not qn <= 0 else 0. for qn in qm_nm ]
+        log_qm_nm = np.array( log_qm_nm )
 
-	log_qm = [ np.log10( qq ) if not qq <= 0 else 0. for qq in qm ]
-	log_qm = np.array( log_qm )
+        log_qm = [ np.log10( qq ) if not qq <= 0 else 0. for qq in qm ]
+        log_qm = np.array( log_qm )
 	
 
-	## make some plots
-	mag_bin_mids = mag_bins[1:] + 0.2
-	fig, axs = plt.subplots( 3, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
+        ## make some plots
+        mag_bin_mids = mag_bins[1:] + 0.2
+        fig, axs = plt.subplots( 3, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
 	## plot 1
-	axs[0].step( mag_bin_mids, log_total, where='mid', label='Total', color='0.5', linewidth=2 )
-	axs[0].step( mag_bin_mids, log_real, where='mid', label='Real', linewidth=2, color='black' )
-	axs[0].step( mag_bin_mids, log_bkg, where='mid', label='Background', linewidth=2, linestyle='dashed', color='black' )
+        axs[0].step( mag_bin_mids, log_total, where='mid', label='Total', color='0.5', linewidth=2 )
+        axs[0].step( mag_bin_mids, log_real, where='mid', label='Real', linewidth=2, color='black' )
+        axs[0].step( mag_bin_mids, log_bkg, where='mid', label='Background', linewidth=2, linestyle='dashed', color='black' )
 	## plot 2
-	axs[1].step( mag_bin_mids, log_qm_nm, where='mid' )
+        axs[1].step( mag_bin_mids, log_qm_nm, where='mid' )
 	## plot 3
-	axs[2].step( mag_bin_mids, log_qm, where='mid' )
+        axs[2].step( mag_bin_mids, log_qm, where='mid' )
 	## axis labels
-	axs[0].set( ylabel='log(N(cparts))' )
-	axs[1].set( ylabel='log(P(m))' )
-	axs[2].set( xlabel=band+' magnitudes', ylabel='log(q(m))' )
+        axs[0].set( ylabel='log(N(cparts))' )
+        axs[1].set( ylabel='log(P(m))' )
+        axs[2].set( xlabel=my_band+' magnitudes', ylabel='log(q(m))' )
 	## add legend
-	axs[0].legend()
-	## adjust ylimits
-	axs
-	fig.savefig( band + '_magnitude_distributions.png' )
-
-
+        axs[0].legend()
+        ## adjust ylimits
+        fig.savefig( my_band + '_magnitude_distributions.png' )
+        fig.clear()
+        
         ## Now calculate the LR and reliability
         final_file = LR_and_reliability( my_band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r_max, Q0, LR_threshold=LR_threshold, ra_col=ra_col, dec_col=dec_col, mag_col=mag_col, id_col=id_col )
+
+        ## make another plot -- LR vs. separation
+        final_matches = Table.read( final_file, format='ascii' )
+        ## plot the LR values where the reliability is above the threshold
+        lr_thresh_idx = np.where( final_matches['Rel'] >= LR_threshold )[0]
+        ## for ease of plotting
+        xvals = final_matches['separation']*60.*60.
+        fig, axs = plt.subplots( 2, sharex=True, gridspec_kw={'hspace':0})
+        ## reliability
+        axs[0].scatter( xvals, final_matches['Rel'], marker='.', color='0.5' )
+        axs[0].scatter( xvals[lr_thresh_idx], final_matches['Rel'][lr_thresh_idx], marker='.', color='blue' )
+        xr = np.arange( np.max( xvals ) )
+        axs[0].plot( xr, np.repeat( LR_threshold, len(xr) ), color='black' )
+        axs[1].scatter( xvals, final_matches['LR'], marker='.', color='0.5' )
+        axs[1].scatter( xvals[lr_thresh_idx], final_matches['LR'][lr_thresh_idx], marker='.', color='blue' )
+        ## axis limits
+        axs[0].set( ylim=(0,1.1))
+        axs[1].set( ylim=(0,np.max(final_matches['LR'])+5) )
+        ## axis labels
+        axs[0].set( ylabel='Reliability' )
+        axs[1].set( xlabel='separation [arcsec]', ylabel='LR value' )
+        fig.savefig( my_band + '_LR_values.png' )
+        fig.clear()
 
 
 if __name__ == "__main__":
