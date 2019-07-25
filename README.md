@@ -3,13 +3,13 @@ A python code for likelihood ratio matching between radio and multi-wavelength s
 
 **Software requirements**
 
-The software in this repository also makes use of the Starlink Tables Infrastructure Library Tool Set (STILTS), which is a command line scriptable version of topcat.  Please see http://www.star.bris.ac.uk/~mbt/stilts/sun256/sun256.html for installation instructions. 
+This software should be compatible with both python 2 and 3, but please report any errors you find.
 
 **python libraries**
 
 This software uses the following python libraries:
 
-argparse, numpy, pandas, os, astropy, scipy
+argparse, numpy, pandas, os, astropy, scipy, matplotlib, aplpy
 
 **Preparing to run**
 
@@ -17,7 +17,8 @@ argparse, numpy, pandas, os, astropy, scipy
 
 - Multi-wavelength catalogue with magnitudes for the bands you wish to match  
 - Radio catalogue  
-- Mask image for the multi-wavelength data
+- Mask image for the multi-wavelength data  
+The assumption here is that the radio data covers an area larger than the multi-wavelength data. If this is not the case, you will need to trim your multi-wavelength mask down. 
 
 2. Set up the configuration file. Please look at the example configuration file and update the parameters as appropriate. This is meant for you to be able to use the software flexibly for catalogues where the column names might be slightly different (e.g., RA vs. ALPHA_J2000, etc.). Please surround strings with quotation marks. The following parameters are set in the configuration file:
 
