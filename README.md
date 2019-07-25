@@ -29,7 +29,11 @@ argparse, numpy, pandas, os, astropy, scipy
 **halo_col**          *the column name for halo masks (for stars -- assumed 1 = flag, 0 = no flag)*  
 **sg_col**             *the column name for star / galaxy separation (assumed 1 = galaxy, 0 = star)*  
 **mag_col**           *an example column name for the magnitude column, with 'X' instead of the band -- e.g.: mag_X*  
-**mag_err_col**       *same as mag_col but for the errors on the magnitude column -- e.g.: mag_err_X*
+**mag_err_col**       *same as mag_col but for the errors on the magnitude column -- e.g.: mag_err_X*  
+**flux_col**          *Total flux column name from radio catalogue*  
+**flux_err_col**      *Column name for errors on total flux*  
+**beam_size**         *the beam size in arcsec*  
+**cal_errors**        *calibration errors (e.g., 0.1 is 10 percent)*
 
 
 **Running the software**
