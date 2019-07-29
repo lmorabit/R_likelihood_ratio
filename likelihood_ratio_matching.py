@@ -380,10 +380,14 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
     t['radio_ID'] = radio_id
     band_name_id = band + '_ID'
     t[band_name_id] = band_id
-    t['LR'] = lr_value
-    t['Rel'] = lr_rel
-    t['n_cont'] = n_cont
-    t['separation'] = separation
+    band_name_LR = band + '_LR'
+    t[band_name_LR] = lr_value
+    band_name_Rel = band + '_Rel'
+    t[band_name_Rel] = lr_rel
+    band_name_n_cont = band + '_n_cont'
+    t[band_name_n_cont] = n_cont
+    band_name_sep = band + '_separation'
+    t[band_name_sep] = separation
 
     print( 'Found a total of %s candidates'%str(n_cand) )
     outfile = band + '_LR_matches.dat'
