@@ -422,6 +422,10 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
     master_cat = make_master_cat( multiwave_cat, overwrite=overwrite, outdir=outdir, my_bands=my_bands, id_col=id_col, ra_col=ra_col, 
             dec_col=dec_col, mask_col=mask_col, sg_col=sg_col, mag_col=mag_col, mag_err_col=mag_err_col )
 
+    ## mask the master cat just to be sure it's right
+    masked_master = apply_mask( master_cat, mask_image, ra_col=ra_col, dec_col=dec_col )
+    master_cat = masked_master
+
     ## read in the master catalogue
     master_hdul = fits.open( master_cat )
     master_hdr = master_hdul[1].header
