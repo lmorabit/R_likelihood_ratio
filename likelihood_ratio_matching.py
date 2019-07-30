@@ -542,20 +542,23 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         ## make another plot -- LR vs. separation
         final_matches = Table.read( final_file, format='ascii' )
         ## plot the LR values where the reliability is above the threshold
-        lr_thresh_idx = np.where( final_matches['Rel'] >= LR_threshold )[0]
+        rel_col = my_band + '_Rel'
+        lr_thresh_idx = np.where( final_matches[rel_col] >= LR_threshold )[0]
         ## for ease of plotting
-        xvals = final_matches['separation']*60.*60.
+        sep_col = my_band + '_separation'
+        xvals = final_matches[sep_col]*60.*60.
         fig, axs = plt.subplots( 2, sharex=True, gridspec_kw={'hspace':0})
         ## reliability
-        axs[0].scatter( xvals, final_matches['Rel'], marker='.', color='0.5' )
-        axs[0].scatter( xvals[lr_thresh_idx], final_matches['Rel'][lr_thresh_idx], marker='.', color='blue' )
+        axs[0].scatter( xvals, final_matches[rel_col], marker='.', color='0.5' )
+        axs[0].scatter( xvals[lr_thresh_idx], final_matches[rel_col][lr_thresh_idx], marker='.', color='blue' )
         xr = np.arange( np.max( xvals ) )
         axs[0].plot( xr, np.repeat( LR_threshold, len(xr) ), color='black' )
-        axs[1].scatter( xvals, final_matches['LR'], marker='.', color='0.5' )
-        axs[1].scatter( xvals[lr_thresh_idx], final_matches['LR'][lr_thresh_idx], marker='.', color='blue' )
+        lr_col = my_band + '_LR'
+        axs[1].scatter( xvals, final_matches[lr_col], marker='.', color='0.5' )
+        axs[1].scatter( xvals[lr_thresh_idx], final_matches[lr_col][lr_thresh_idx], marker='.', color='blue' )
         ## axis limits
         axs[0].set( ylim=(0,1.1))
-        axs[1].set( ylim=(0,np.max(final_matches['LR'])+5) )
+        axs[1].set( ylim=(0,np.max(final_matches[lr_col])+5) )
         ## axis labels
         axs[0].set( ylabel='Reliability' )
         axs[1].set( xlabel='separation [arcsec]', ylabel='LR value' )
