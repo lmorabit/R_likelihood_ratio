@@ -212,6 +212,28 @@ def find_number_no_counterparts( radio_dat, band_dat, radii, ra_col='RA', dec_co
 def q0_function( x, q0, sig ):
     return 1. - q0 * ( 1. - np.exp( -np.power( x, 2. ) / ( 2. * np.power( sig, 2. ) ) ) )
 
+def random_points_on_a_sphere( npoints, ra_limits, dec_limits ):
+
+    ## convert to radians first
+    ra_limits = ra_limits * np.pi / 180.
+    dec_limits = dec_limits * np.pi / 180.
+
+    ## RA is uniform in azimuthal angle
+    np.random.seed(30)
+    random_ra = np.random.uniform( ra_limits[0], ra_limits[1], npoints )
+
+    ## Dec is not
+    np.random.seed(20)
+    random_angles = np.random.uniform( 0, 1, npoints ) * ( dec_limits[1] - dec_limits[0] ) + dec_limits[0]
+    random_dec = np.arcsin( random_angles )
+
+    ## convert back to degrees
+    random_ra = random_ra * 180. / np.pi
+    random_dec = random_dec * 180. / np.pi
+
+    return random_ra, random_dec
+
+
 def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', dec_col='DEC', overwrite=True ):
 
 
@@ -248,14 +270,8 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
             min_DEC = min_DEC - DEC_spread * 0.05
             max_DEC = max_DEC + DEC_spread * 0.05
 
-            
             ## randomly generate RA/DEC pairs 
-            np.random.seed(30)
-            rand_DEC = np.random.uniform( min_DEC, max_DEC, n_srcs * 4 )
-            np.random.seed(20)
-            cosDEC = np.cos( rand_DEC * np.pi / 180. )
-            rand_RA_cosDEC = np.random.uniform( min_RA*cosDEC, max_RA*cosDEC, n_srcs * 4 )
-            rand_RA = rand_RA_cosDEC / cosDEC
+            rand_RA, rand_DEC = random_points_on_a_sphere( [min_RA,max_RA], [min_DEC,max_DEC], n_srcs * 4 )
             ## create a table and write a fits catalogue (for apply_mask)
             t = Table()
             t['RA'] = rand_RA
