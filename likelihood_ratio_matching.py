@@ -540,7 +540,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
 
         ## make some plots
         mag_bin_mids = mag_bins[1:] + 0.2
-        fig, axs = plt.subplots( 3, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
+        fig, axs = plt.subplots( 3, sharex=True, gridspec_kw={'hspace': 0})
 	## plot 1
         axs[0].step( mag_bin_mids, log_total, where='mid', label='Total', color='0.5', linewidth=2 )
         axs[0].step( mag_bin_mids, log_real, where='mid', label='Real', linewidth=2, linestyle='dashed', color='black' )
