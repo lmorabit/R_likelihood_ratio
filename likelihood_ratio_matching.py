@@ -341,14 +341,6 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
     plt.savefig( band + '_q0_estimate.png' )
     plt.close()
 
-    n_srcs = radio_dat.shape[0]
-    plt.plot( t1['Radius'], t1['Random']/n_srcs, linewidth=2, color='0.5', label='Random' )
-    plt.plot( t1['Radius'], t1['Real']/n_srcs, linewidth=2, color='black', label='Real' )
-    yvals = q0_function( t1['Radius'], coeff[0], coeff[1] )
-    plt.plot( t1['Radius'], yvals, linewidth=2, color='red', label='Fit' )
-    plt.plot( t1['Radius'], t1['Ratio'], marker='o', color='blue', label='Ratio' )
-    plt.savefig( band + '_q0_estimate.png' )
-
     return( coeff[0], coeff_err[0] )
 
 def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r_max, q0, LR_threshold=0.8, ra_col='RA', dec_col='DEC', mag_col='', id_col='' ):
