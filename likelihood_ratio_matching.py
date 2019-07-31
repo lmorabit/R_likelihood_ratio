@@ -76,11 +76,11 @@ def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=Tru
 def get_unmasked_area( mask_image, overwrite=True ):
 
     if os.path.isfile( 'unmasked_area.dat' ) and not overwrite:
-	## get the area from the file
-	with open( 'unmasked_area.dat', 'r' ) as f:
-	    lines = f.readlines()
-	f.close()
-	area_asec = np.float( lines[0] )
+        ## get the area from the file
+        with open( 'unmasked_area.dat', 'r' ) as f:
+            lines = f.readlines()
+        f.close()
+        area_asec = np.float( lines[0] )
     else:
         ## open the mask image
         mymask = fits.open( mask_image )
@@ -93,9 +93,9 @@ def get_unmasked_area( mask_image, overwrite=True ):
         ## find the unmasked area
         area_asec = pix_area_asec * npix_unmasked
         mymask.close()
-	with open( 'unmasked_area.dat', 'w' ) as f:
-	    f.write(str(area_asec))
-	f.close()
+        with open( 'unmasked_area.dat', 'w' ) as f:
+            f.write(str(area_asec))
+        f.close()
 	    
     print( 'Area is %s (in arcsec^2)'%str(area_asec) )
     return( area_asec )
