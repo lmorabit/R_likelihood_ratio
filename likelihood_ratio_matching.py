@@ -271,7 +271,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
             max_DEC = max_DEC + DEC_spread * 0.05
 
             ## randomly generate RA/DEC pairs 
-            rand_RA, rand_DEC = random_points_on_a_sphere( [min_RA,max_RA], [min_DEC,max_DEC], n_srcs * 4 )
+            rand_RA, rand_DEC = random_points_on_a_sphere( n_srcs*4, np.array([min_RA,max_RA]), np.array([min_DEC,max_DEC]) )
             ## create a table and write a fits catalogue (for apply_mask)
             t = Table()
             t['RA'] = rand_RA
