@@ -370,7 +370,7 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
             ## get the magnitudes
             band_mags = tmp_dat[band_col]
             ## calculate the radial probability distribution for the candidates
-            f_r = 1. / ( 2. * np.pi * sig_sq ) * np.exp( - np.power( distances[candidate_idx], 2. ) / ( 2. * sig_sq[xx] ) ) 
+            f_r = 1. / ( 2. * np.pi * sig_sq[xx] ) * np.exp( - np.power( distances[candidate_idx], 2. ) / ( 2. * sig_sq[xx] ) ) 
             ## loop through the candidates
             LR = []
             for yy in np.arange( len(candidate_idx) ):
