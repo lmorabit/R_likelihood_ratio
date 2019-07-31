@@ -73,19 +73,30 @@ def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=Tru
     
     return( new_name )
 
-def get_unmasked_area( mask_image ):
+def get_unmasked_area( mask_image, overwrite=True ):
 
-    ## open the mask image
-    mymask = fits.open( mask_image )
-    ## get the pixel scale
-    xpix_asec = mymask[0].header['CDELT1'] * 60. * 60.
-    ypix_asec = mymask[0].header['CDELT2'] * 60. * 60.
-    pix_area_asec = np.abs(xpix_asec) * np.abs(ypix_asec) 
-    ## and the number of unmasked pixels
-    npix_unmasked = np.count_nonzero(mymask[0].data==0.0)
-    ## find the unmasked area
-    area_asec = pix_area_asec * npix_unmasked
-    mymask.close()
+    if os.path.isfile( 'unmasked_area.dat' ) and not overwrite:
+	## get the area from the file
+	with open( 'unmasked_area.dat', 'r' ) as f:
+	    lines = f.readlines()
+	f.close()
+	area_asec = np.float( lines[0] )
+    else:
+        ## open the mask image
+        mymask = fits.open( mask_image )
+        ## get the pixel scale
+        xpix_asec = mymask[0].header['CDELT1'] * 60. * 60.
+        ypix_asec = mymask[0].header['CDELT2'] * 60. * 60.
+        pix_area_asec = np.abs(xpix_asec) * np.abs(ypix_asec) 
+        ## and the number of unmasked pixels
+        npix_unmasked = np.count_nonzero(mymask[0].data==0.0)
+        ## find the unmasked area
+        area_asec = pix_area_asec * npix_unmasked
+        mymask.close()
+	with open( 'unmasked_area.dat', 'w' ) as f:
+	    f.write(str(area_asec))
+	f.close()
+	    
     print( 'Area is %s (in arcsec^2)'%str(area_asec) )
     return( area_asec )
 
@@ -342,7 +353,10 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
 
 def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r_max, q0, LR_threshold=0.8, ra_col='RA', dec_col='DEC', mag_col='', id_col='' ):
 
+    ## housekeeping
     band_col = mag_col.replace('X', band)
+    r_max_deg = r_max / 60. / 60.
+    sig_sq = np.power( sigma_pos, 2. )
 
     ## initialize empty lists
     radio_id = []
@@ -356,7 +370,6 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
     for xx in np.arange(radio_dat.shape[0]):
 
         ## calculate f(r)
-        r_max_deg = r_max / 60. / 60.
         distances = cenang( radio_dat['RA'][xx], radio_dat['DEC'][xx], band_dat[ra_col], band_dat[dec_col] )
         candidate_idx = np.where( distances <= r_max_deg )[0]
         n_cand = len( candidate_idx )
@@ -366,8 +379,7 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
             ## get the magnitudes
             band_mags = tmp_dat[band_col]
             ## calculate the radial probability distribution for the candidates
-            sig_sq = np.power( sigma_pos[xx], 2. )
-            f_r = 1. / ( 2. * np.pi * sig_sq ) * np.exp( - np.power( distances[candidate_idx], 2. ) / ( 2. * sig_sq ) )
+            f_r = 1. / ( 2. * np.pi * np.power( sig_sq[xx], 2. ) ) * np.exp( - np.power( distances[candidate_idx], 2. ) / ( 2. * np.power( sig_sq[xx], 2. ) ) ) 
             ## loop through the candidates
             LR = []
             for yy in np.arange( len(candidate_idx) ):
@@ -439,7 +451,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
             dec_col=dec_col, mask_col=mask_col, sg_col=sg_col, mag_col=mag_col, mag_err_col=mag_err_col )
 
     ## mask the master cat just to be sure it's right
-    masked_master = apply_mask( master_cat, mask_image, ra_col=ra_col, dec_col=dec_col )
+    masked_master = apply_mask( master_cat, mask_image, ra_col=ra_col, dec_col=dec_col, overwrite=overwrite )
     master_cat = masked_master
 
     ## read in the master catalogue
@@ -448,10 +460,10 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
     master_dat = master_hdul[1].data
 
     ## get the un-masked area
-    area_asec = get_unmasked_area( mask_image )
+    area_asec = get_unmasked_area( mask_image, overwrite=overwrite )
 
     ## mask the radio data
-    masked_radio_cat = apply_mask( radio_cat, mask_image, ra_col='RA', dec_col='DEC' )
+    masked_radio_cat = apply_mask( radio_cat, mask_image, ra_col='RA', dec_col='DEC', overwrite=overwrite )
 
     ## read in the masked radio data
     radio_hdul = fits.open( masked_radio_cat )
@@ -526,7 +538,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         log_real = np.array( log_real )
 
         log_bkg = [ np.log10( bb ) if not bb <= 0 else 0. for bb in background ]
-        log_bkg = np.array( background )
+        log_bkg = np.array( log_bkg )
 
         log_qm_nm = [ np.log10( qn ) if not qn <= 0 else 0. for qn in qm_nm ]
         log_qm_nm = np.array( log_qm_nm )
@@ -540,8 +552,8 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         fig, axs = plt.subplots( 3, sharex=True, sharey=True, gridspec_kw={'hspace': 0})
 	## plot 1
         axs[0].step( mag_bin_mids, log_total, where='mid', label='Total', color='0.5', linewidth=2 )
-        axs[0].step( mag_bin_mids, log_real, where='mid', label='Real', linewidth=2, color='black' )
-        axs[0].step( mag_bin_mids, log_bkg, where='mid', label='Background', linewidth=2, linestyle='dashed', color='black' )
+        axs[0].step( mag_bin_mids, log_real, where='mid', label='Real', linewidth=2, linestyle='dashed', color='black' )
+        axs[0].step( mag_bin_mids, log_bkg, where='mid', label='Background', linewidth=2, linestyle='dot-dashed', color='black' )
 	## plot 2
         axs[1].step( mag_bin_mids, log_qm_nm, where='mid' )
 	## plot 3
