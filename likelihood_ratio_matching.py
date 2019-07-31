@@ -347,7 +347,6 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
 
     ## housekeeping
     band_col = mag_col.replace('X', band)
-    r_max_deg = r_max / 60. / 60.
     sig_sq = np.power( sigma_pos, 2. )
 
     ## initialize empty lists
@@ -362,8 +361,8 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
     for xx in np.arange(radio_dat.shape[0]):
 
         ## calculate f(r)
-        distances = cenang( radio_dat['RA'][xx], radio_dat['DEC'][xx], band_dat[ra_col], band_dat[dec_col] )
-        candidate_idx = np.where( distances <= r_max_deg )[0]
+        distances = cenang( radio_dat['RA'][xx], radio_dat['DEC'][xx], band_dat[ra_col], band_dat[dec_col] ) * 60. * 60.
+        candidate_idx = np.where( distances <= r_max )[0]
         n_cand = len( candidate_idx )
         if n_cand > 0:
             ## select the data
@@ -371,7 +370,7 @@ def LR_and_reliability( band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r
             ## get the magnitudes
             band_mags = tmp_dat[band_col]
             ## calculate the radial probability distribution for the candidates
-            f_r = 1. / ( 2. * np.pi * np.power( sig_sq[xx], 2. ) ) * np.exp( - np.power( distances[candidate_idx], 2. ) / ( 2. * np.power( sig_sq[xx], 2. ) ) ) 
+            f_r = 1. / ( 2. * np.pi * sig_sq ) * np.exp( - np.power( distances[candidate_idx], 2. ) / ( 2. * sig_sq[xx] ) ) 
             ## loop through the candidates
             LR = []
             for yy in np.arange( len(candidate_idx) ):
@@ -513,7 +512,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         
         ## find the expected distribution of true counterparts -- q(m)
         tmhist = np.histogram( match_magnitudes, bins=mag_bins )
-        total_m = [ np.sum( counts ) for counts in tmhist[0] ]
+        total_m = np.cumsum( tmhist[0] )
         background = nm * n_radio_sources * np.pi * np.power( r_max, 2. )
         real_m = total_m - background
         qm = real_m / np.sum( real_m ) * Q0
@@ -545,7 +544,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
 	## plot 1
         axs[0].step( mag_bin_mids, log_total, where='mid', label='Total', color='0.5', linewidth=2 )
         axs[0].step( mag_bin_mids, log_real, where='mid', label='Real', linewidth=2, linestyle='dashed', color='black' )
-        axs[0].step( mag_bin_mids, log_bkg, where='mid', label='Background', linewidth=2, linestyle='dot-dashed', color='black' )
+        axs[0].step( mag_bin_mids, log_bkg, where='mid', label='Background', linewidth=2, linestyle='dotted', color='0.4' )
 	## plot 2
         axs[1].step( mag_bin_mids, log_qm_nm, where='mid' )
 	## plot 3
@@ -570,7 +569,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         lr_thresh_idx = np.where( final_matches[rel_col] >= LR_threshold )[0]
         ## for ease of plotting
         sep_col = my_band + '_separation'
-        xvals = final_matches[sep_col]*60.*60.
+        xvals = final_matches[sep_col]
         fig, axs = plt.subplots( 2, sharex=True, gridspec_kw={'hspace':0})
         ## reliability
         axs[0].scatter( xvals, final_matches[rel_col], marker='.', color='0.5' )
