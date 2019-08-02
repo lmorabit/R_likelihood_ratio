@@ -581,7 +581,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         axs[1].scatter( xvals[lr_thresh_idx], final_matches[lr_col][lr_thresh_idx], marker='.', color='blue' )
         ## axis limits
         axs[0].set( ylim=(0,1.1))
-        axs[1].set( ylim=(0,np.max(final_matches[lr_col])+5) )
+        axs[1].set( ylim=(0,3.*np.median(final_matches[lr_col])) )
         ## axis labels
         axs[0].set( ylabel='Reliability' )
         axs[1].set( xlabel='separation [arcsec]', ylabel='LR value' )
