@@ -43,3 +43,9 @@ run
 > likelihood_ratio_matching.py -h  
 
 to see the optional and required inputs.
+
+When doing this in more than one band, it is possible to give a threshold and prioritised list of bands to make a final catalogue of good matches.  To do this, run  
+
+> finalise_matches.py -h  
+
+to see the required inputs.
