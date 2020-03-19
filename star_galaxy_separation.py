@@ -87,7 +87,7 @@ def fit_stellar_locus( xvals, yvals, iso_slope=0.6, iso_intersect=0.475, x1=0.15
     return( result  )
 
 
-def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
+def main( fits_cat, mask_name, config_file ):
 
     print( 'Reading in configuration file.' )
     config_params = pandas.read_table( config_file, delim_whitespace=True ).replace("'","",regex=True)
@@ -105,6 +105,10 @@ def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
     flux_err_col = config_params['value'][np.where( config_params['parameter'] == 'flux_err_col' )[0][0]]
     beam_size = np.float(config_params['value'][np.where( config_params['parameter'] == 'beam_size' )[0][0]])
     cal_errors = np.float(config_params['value'][np.where( config_params['parameter'] == 'cal_errors' )[0][0]])
+    sg_col1 = config_params['value'][np.where( config_params['parameter'] == 'sg_col1' )[0][0]]
+    sg_col2 = config_params['value'][np.where( config_params['parameter'] == 'sg_col2' )[0][0]]
+    sg_col3 = config_params['value'][np.where( config_params['parameter'] == 'sg_col3' )[0][0]]
+    sg_col4 = config_params['value'][np.where( config_params['parameter'] == 'sg_col4' )[0][0]]
 
     hdul = fits.open( fits_cat )
     mytab = hdul[1].data
@@ -115,7 +119,6 @@ def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
     ## open the mask    
     mask_fits = fits.open( mask_name )
     mask_wcs = WCS( mask_name )
-    mask_wcs.all_world2pix(  )
 
     ## get RA, DEC pairs for the catalogue
     RA = mytab[ra_col]
@@ -127,6 +130,8 @@ def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
     ## add this to the table
     tab_cols = tab_cols + fits.Column( name='Mask', format='I', array=mask_col_vals )
 
+    ## close the mask 
+    mask_fits.close()
 
     ## get a list of bands
     mag_pref = mag_col.split('_')[0]
@@ -141,19 +146,12 @@ def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
         tab_cols = tab_cols + new_col
 
     ## add the various colour-colour columns we need    
-    g_col = 'mag_CFHT-g'
-    i_col = 'mag_CFHT-iy'
-    r_col = 'mag_CFHT-r'
-    j_col = 'mag_J'
-    ks_col = 'mag_Ks'
-    g_minus_i = mytab[g_col] - mytab[i_col]
-    g_minus_r = mytab[g_col] - mytab[r_col]
-    J_minus_Ks = mytab[j_col] - mytab[ks_col]
+    x_minus = mytab[sg_col1] - mytab[sg_col2]
+    y_minus = mytab[sg_col3] - mytab[sg_col4]
 
     ## add them to the table
-    tab_cols = tab_cols + fits.Column( name='g_minus_i', format='D', array=g_minus_i )
-    tab_cols = tab_cols + fits.Column( name='g_minus_r', format='D', array=g_minus_r )
-    tab_cols = tab_cols + fits.Column( name='J_minus_Ks', format='D', array=J_minus_Ks )
+    tab_cols = tab_cols + fits.Column( name='x_minus', format='D', array=x_minus )
+    tab_cols = tab_cols + fits.Column( name='y_minus', format='D', array=y_minus )
 
     hdu = fits.BinTableHDU.from_columns(tab_cols)
     ## write the table
@@ -169,14 +167,14 @@ def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
     unmasked_tab = new_tab[unmasked_idx]
 
     ## make 5-sigma selection
-    g_idx = np.where( unmasked_tab[g_col.replace(mag_pref,'SNR')] >= 5. )[0]
-    r_idx = np.where( unmasked_tab[r_col.replace(mag_pref,'SNR')] >= 5. )[0]
-    J_idx = np.where( unmasked_tab[j_col.replace(mag_pref,'SNR')] >= 5. )[0]
-    Ks_idx = np.where( unmasked_tab[ks_col.replace(mag_pref,'SNR')] >= 5. )[0]
+    sg_idx1 = np.where( unmasked_tab[sg_col1.replace(mag_pref,'SNR')] >= 5. )[0]
+    sg_idx2 = np.where( unmasked_tab[sg_col2.replace(mag_pref,'SNR')] >= 5. )[0]
+    sg_idx3 = np.where( unmasked_tab[sg_col3.replace(mag_pref,'SNR')] >= 5. )[0]
+    sg_idx4 = np.where( unmasked_tab[sg_col4.replace(mag_pref,'SNR')] >= 5. )[0]
     ## combine them
-    idx = np.intersect1d( g_idx, r_idx )
-    idx = np.intersect1d( idx, J_idx )
-    idx = np.intersect1d( idx, Ks_idx )
+    idx = np.intersect1d( sg_idx1, sg_idx2 )
+    idx = np.intersect1d( idx, sg_idx3 )
+    idx = np.intersect1d( idx, sg_idx4 )
 
     final_tab = unmasked_tab[idx] 
 
@@ -184,8 +182,8 @@ def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
     xmin, xmax = -0.5, 2.
     ymin, ymax = -1.5, 2.
 
-    xvals = final_tab['g_minus_r']
-    yvals = final_tab['J_minus_Ks']
+    xvals = final_tab['x_minus']
+    yvals = final_tab['y_minus']
 
     xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
     positions = np.vstack([xx.ravel(), yy.ravel()])
@@ -204,16 +202,17 @@ def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
     ax.set_xlim(xmin,xmax)
     ax.set_ylim(ymin,ymax)
     fig.savefig('sg-sep.png')
+    fig.clear()
 
 
     ## fit the stellar locus
     ## PLEASE NOTE: YOU MAY HAVE TO ADJUST THE VALUES GIVEN TO THE INITIAL OUTLIER CUTS AND FITS
-    result = fit_stellar_locus( final_tab['g_minus_r'], yvals = final_tab['J_minus_Ks'], iso_slope=0.59, iso_intersect=0.55, x1=0.175, x2=1.5, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, offset=0.14 )
+    result = fit_stellar_locus( final_tab['x_minus'], yvals = final_tab['y_minus'], iso_slope=0.59, iso_intersect=0.55, x1=0.175, x2=1.5, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, offset=0.14 )
 
     ## make a star/galaxy separation column
     ## 1 = galaxy, 0 = star
-    predict_y = selection_function( new_tab['g_minus_r'], result[0], result[1], result[2], result[3], result[4], result[5], result[6] )
-    galaxy_idx = np.where( new_tab['J_minus_Ks'] >= predict_y )
+    predict_y = selection_function( new_tab['x_minus'], result[0], result[1], result[2], result[3], result[4], result[5], result[6] )
+    galaxy_idx = np.where( new_tab['y_minus'] >= predict_y )
     sg_sep = np.zeros(len(new_tab))
     sg_sep[galaxy_idx] = 1
 

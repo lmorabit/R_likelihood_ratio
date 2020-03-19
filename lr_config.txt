@@ -1,9 +1,9 @@
 parameter	value
 outdir		'.'
 bands		'J,H,Ks'
-id_col		'UID'
-ra_col		'RAcen'
-dec_col		'Deccen'
+id_col		'ID'
+ra_col		'RA'
+dec_col		'DEC'
 mask_col	'Mask'
 sg_col		'SGsep'
 mag_col		'mag_Xt'
@@ -12,3 +12,7 @@ flux_col	'Total_flux'
 flux_err_col	'E_Total_flux'
 beam_size	5.0
 cal_errors	0.1
+sg_col1     'mag_CFHT-g'
+sg_col2     'mag_CFHT-r'
+sg_col3     'mag_J'
+sg_col4     'mag_Ks'
