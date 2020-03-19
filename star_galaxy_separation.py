@@ -87,7 +87,7 @@ def fit_stellar_locus( xvals, yvals, iso_slope=0.6, iso_intersect=0.475, x1=0.15
     return( result  )
 
 
-def main( fits_cat, mask_name ):
+def main( fits_cat, mask_name, config_file = 'lr_config.txt' ):
 
     print( 'Reading in configuration file.' )
     config_params = pandas.read_table( config_file, delim_whitespace=True ).replace("'","",regex=True)
