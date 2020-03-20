@@ -29,7 +29,7 @@ def cenang( a1, d1, a2, d2 ):
         theta = theta * 180. / np.pi
         return theta
 
-def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=True ):
+def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=True, maskval=0 ):
 
     ## open the catalogue
     mycat = fits.open( catalogue )
@@ -58,10 +58,14 @@ def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=Tru
         if x_check and y_check:
             flags.append( mask_vals[int(y),int(x)] )
         else:
-            flags.append(1.0)
+            flags.append(maskval)
 
     ## make new data where unmasked
-    unmasked_idx = np.where( np.array(flags) == 0.0 )
+    if maskval == 0:
+        unmaskval = 1
+    elif masval == 1:
+        unmaskval = 0
+    unmasked_idx = np.where( np.array(flags) == unmaskval )
     new_data = data[unmasked_idx]
 
     ## write a new file
@@ -131,7 +135,8 @@ def make_master_cat( multiwave_cat, overwrite=False, outdir='.', my_bands='J,H,K
 
         ## select non-halo objects
         print( ' ... removing objects where '+mask_col+' is 1' )
-        non_halo_idx = np.where(new_tab[mask_col] == 0)[0]
+        #non_halo_idx = np.where(new_tab[mask_col] == 0)[0]
+        non_halo_idx = np.where(new_tab[mask_col] == 1)[0]
         new_tab = new_tab[non_halo_idx]
 
         ## select only galaxies
@@ -282,7 +287,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
             max_DEC = max_DEC + DEC_spread * 0.05
 
             ## randomly generate RA/DEC pairs 
-            rand_RA, rand_DEC = random_points_on_a_sphere( n_srcs*4, np.array([min_RA,max_RA]), np.array([min_DEC,max_DEC]) )
+            rand_RA, rand_DEC = random_points_on_a_sphere( n_srcs*6, np.array([min_RA,max_RA]), np.array([min_DEC,max_DEC]) )
             ## create a table and write a fits catalogue (for apply_mask)
             t = Table()
             t['RA'] = rand_RA
@@ -298,7 +303,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
             ## trim it down to the right size
             masked_dat = masked_dat[np.arange(n_srcs)]
         else:
-            print( 'Not enough data points in the catalogue, try increasing the initial number of random sources.' )
+            print( 'Not enough data points in the catalogue, increasing the initial number of random sources.' )
             return(1)
 
         ## find the number of random radio sources with no counterparts
@@ -581,7 +586,15 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         axs[1].scatter( xvals[lr_thresh_idx], final_matches[lr_col][lr_thresh_idx], marker='.', color='blue' )
         ## axis limits
         axs[0].set( ylim=(0,1.1))
-        axs[1].set( ylim=(0,3.*np.median(final_matches[lr_col])) )
+        ## extreme outlier rejection
+        sorted_vals = np.sort(final_matches[lr_col])
+        for x in np.arange(len(final_matches))+1:
+            diff = sorted_vals[-x] - sorted_vals[-(x+1)] 
+            if diff < sorted_vals[-(x+1)]:
+                maxval = sorted_vals[-(x)]
+                break
+            
+        axs[1].set( ylim=(0, maxval*1.2) ) #3.*np.median(final_matches[lr_col])) )
         ## axis labels
         axs[0].set( ylabel='Reliability' )
         axs[1].set( xlabel='separation [arcsec]', ylabel='LR value' )
