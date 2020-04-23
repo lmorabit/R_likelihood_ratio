@@ -240,8 +240,9 @@ def random_points_on_a_sphere( npoints, ra_limits, dec_limits ):
 
     ## Dec is not
     np.random.seed(20)
-    random_angles = np.random.uniform( 0, 1, npoints ) * ( dec_limits[1] - dec_limits[0] ) + dec_limits[0]
-    random_dec = np.arcsin( random_angles )
+    random_angles = np.random.uniform( 0, 1, npoints )
+    random_angles = np.arcsin(random_angles)
+    random_dec = random_angles * ( dec_limits[1] - dec_limits[0] ) + dec_limits[0]
 
     ## convert back to degrees
     random_ra = random_ra * 180. / np.pi
