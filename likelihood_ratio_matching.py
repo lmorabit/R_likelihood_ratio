@@ -70,7 +70,7 @@ def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=Tru
 
     ## write a new file
     new_header = mycat[1].header
-    new_header['NAXIS2'] = len(unmasked_idx[0])
+    new_header['NAXIS2'] = len(unmasked_idx)
     new_table = fits.BinTableHDU( data=new_data, header=new_header )
     new_name = catalogue.replace('.fits', '_masked.fits' )
     new_table.writeto( new_name, overwrite=overwrite )
