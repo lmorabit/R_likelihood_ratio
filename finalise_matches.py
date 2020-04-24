@@ -18,7 +18,8 @@ def check_duplicates( mytab ):
         unique_tab = mytab[unique_idx]
         dup_idx = np.where( dup_count > 1 )[0]
         ## get the rel col
-        rel_col = [ xx for xx in tmp_vals.colnames if 'Rel' in xx ]
+        #rel_col = [ xx for xx in tmp_vals.colnames if 'Rel' in xx ]
+        rel_col = [ xx for xx in mytab.colnames if 'Rel' in xx ]
         rel_col = rel_col[0]
         for xx in dup_idx:
             dup_val = unique_vals[xx]
