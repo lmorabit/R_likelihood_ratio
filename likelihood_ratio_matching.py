@@ -63,9 +63,9 @@ def apply_mask( catalogue, mask_image, ra_col='RA', dec_col='DEC', overwrite=Tru
     ## make new data where unmasked
     if maskval == 0:
         unmaskval = 1
-    elif masval == 1:
+    elif maskval == 1:
         unmaskval = 0
-    unmasked_idx = np.where( np.array(flags) == unmaskval )
+    unmasked_idx = np.where( np.array(flags) == unmaskval )[0]
     new_data = data[unmasked_idx]
 
     ## write a new file
