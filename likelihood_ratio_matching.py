@@ -292,7 +292,7 @@ def find_Q0_fleuren( band, radio_dat, band_dat, radii, mask_image, ra_col='RA', 
             ## create a table and write a fits catalogue (for apply_mask)
             t = Table()
             t[rad_ra_col] = rand_RA
-            t[rad_ra_col] = rand_DEC
+            t[rad_dec_col] = rand_DEC
             rand_table = fits.BinTableHDU( data=t )
             rand_table.writeto( f_rand_file, overwrite=overwrite )
 
