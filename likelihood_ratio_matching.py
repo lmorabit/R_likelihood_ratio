@@ -462,7 +462,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
     area_asec = get_unmasked_area( mask_image, overwrite=overwrite )
 
     ## mask the radio data
-    masked_radio_cat = apply_mask( radio_cat, mask_image, ra_col=rad_ra_col, dec_col=rad_ra_col, overwrite=overwrite )
+    masked_radio_cat = apply_mask( radio_cat, mask_image, ra_col=rad_ra_col, dec_col=rad_dec_col, overwrite=overwrite )
 
     ## read in the masked radio data
     radio_hdul = fits.open( masked_radio_cat )
@@ -568,7 +568,7 @@ def main( multiwave_cat, radio_cat, mask_image, config_file='lr_config.txt', ove
         fig.clear()
         
         ## Now calculate the LR and reliability
-        final_file = LR_and_reliability( my_band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r_max, Q0, LR_threshold=LR_threshold, ra_col=ra_col, dec_col=dec_col, ra_ra_col=rad_ra_col, rad_dec_col=rad_dec_col, mag_col=mag_col, id_col=id_col )
+        final_file = LR_and_reliability( my_band, band_dat, radio_dat, qm_nm, sigma_pos, mag_bins, r_max, Q0, LR_threshold=LR_threshold, ra_col=ra_col, dec_col=dec_col, rad_ra_col=rad_ra_col, rad_dec_col=rad_dec_col, mag_col=mag_col, id_col=id_col )
 
         ## make another plot -- LR vs. separation
         final_matches = Table.read( final_file, format='ascii' )
