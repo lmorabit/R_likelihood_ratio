@@ -9,6 +9,7 @@ from astropy.wcs import WCS
 import scipy.stats as st
 from scipy.optimize import curve_fit
 import os
+from astropy.table import Table, Column
 
 ## define the model
 def quad_model( x, a, b, c ):
@@ -110,11 +111,8 @@ def main( fits_cat, mask_name, config_file ):
     sg_col3 = config_params['value'][np.where( config_params['parameter'] == 'sg_col3' )[0][0]]
     sg_col4 = config_params['value'][np.where( config_params['parameter'] == 'sg_col4' )[0][0]]
 
-    hdul = fits.open( fits_cat )
-    mytab = hdul[1].data
-
-    tab_cols = mytab.columns
-    colnames =  tab_cols.names
+    mytab = Table.read( fits_cat, format='fits' )
+    colnames = mytab.colnames
 
     ## open the mask    
     mask_fits = fits.open( mask_name )
@@ -127,8 +125,8 @@ def main( fits_cat, mask_name, config_file ):
     mask_vals = mask_fits[0].data
     mask_col_vals = [ mask_vals[np.int(y),np.int(x)] for x,y in zip(pixx, pixy) ]
 
-    ## add this to the table
-    tab_cols = tab_cols + fits.Column( name='Mask', format='I', array=mask_col_vals )
+    mask_data = Column( mask_col_vals, name = 'Mask' )
+    mytab.add_column( mask_data )
 
     ## close the mask 
     mask_fits.close()
@@ -142,28 +140,21 @@ def main( fits_cat, mask_name, config_file ):
     for band in mybands:
         err_col = band.replace(mag_pref,mag_err_pref)
         snr_col = 1.08574 / mytab[err_col] ## for 5-sigma cut
-        new_col = fits.Column( name = band.replace(mag_pref,'SNR'), format='D', array=snr_col )
-        tab_cols = tab_cols + new_col
+        new_col = Column( snr_col, name = band.replace(mag_pref,'SNR') )
+        mytab.add_column( new_col )
 
     ## add the various colour-colour columns we need    
     x_minus = mytab[sg_col1] - mytab[sg_col2]
     y_minus = mytab[sg_col3] - mytab[sg_col4]
 
     ## add them to the table
-    tab_cols = tab_cols + fits.Column( name='x_minus', format='D', array=x_minus )
-    tab_cols = tab_cols + fits.Column( name='y_minus', format='D', array=y_minus )
-
-    hdu = fits.BinTableHDU.from_columns(tab_cols)
-    ## write the table
-    hdu.writeto('tmp.fits')
-
-    new_hdul = fits.open('tmp.fits')
-    
-    new_tab = new_hdul[1].data
-    new_tab_cols = new_tab.columns
+    xcol = Column( x_minus, name='x_minus' )
+    ycol = Column( y_minus, name='y_minus' )
+    mytab.add_column( xcol )
+    mytab.add_column( ycol )
 
     ## apply mask
-    unmasked_idx = np.where( new_tab[mask_col] == 1 )[0]
+    unmasked_idx = np.where( mytab[mask_col] == 1 )[0]
     unmasked_tab = new_tab[unmasked_idx]
 
     ## make 5-sigma selection
@@ -211,20 +202,22 @@ def main( fits_cat, mask_name, config_file ):
 
     ## make a star/galaxy separation column
     ## 1 = galaxy, 0 = star
-    predict_y = selection_function( new_tab['x_minus'], result[0], result[1], result[2], result[3], result[4], result[5], result[6] )
-    galaxy_idx = np.where( new_tab['y_minus'] >= predict_y )
-    sg_sep = np.zeros(len(new_tab))
+    predict_y = selection_function( mytab['x_minus'], result[0], result[1], result[2], result[3], result[4], result[5], result[6] )
+    galaxy_idx = np.where( mytab['y_minus'] >= predict_y )
+    sg_sep = np.zeros(len(mytab))
     sg_sep[galaxy_idx] = 1
 
-    new_tab_cols = new_tab_cols + fits.Column( name='sg_sep', format='I', array=sg_sep )
+    sg_col_data = Column( sg_sep, name='sg_sep' )
+    mytab.add_column( sg_col_data )
 
-    final_hdu = fits.BinTableHDU.from_columns(new_tab_cols)
     ## write the table
-    final_hdu.writeto( fits_cat.replace('.fits','_SG_sep.fits') )
-    os.system('rm tmp.fits')
+    mytab.write( fits_cat.replace('.fits','_SG_sep.fits'), format='fits' )
 
         
-
-
-
-
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--catalogue',type=str,help='Input fits catalogue of multi-wavelength data')
+    parser.add_argument('--mask',type=str,help='Mask name for catalogue')
+    parser.add_argument('--config',type=str,default='lr_config.txt',help='config file [default: lr_config.txt]')
+    args = parser.parse_args()
+    main( args.catalogue, args.mask, args.config )
