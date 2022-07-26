@@ -18,7 +18,7 @@ argparse, numpy, pandas, os, astropy, scipy, matplotlib, aplpy
 - Multi-wavelength catalogue with magnitudes for the bands you wish to match  
 - Radio catalogue  
 - Mask image for the multi-wavelength data  
-The assumption here is that the radio data covers an area larger than the multi-wavelength data. If this is not the case, you will need to trim your multi-wavelength mask down. 
+The assumption here is that the radio data covers an area larger than the multi-wavelength data. If this is not the case, you will need to trim your multi-wavelength mask down. NOTE: It is also critical to trim the mask down, as the total area is calculated from the mask. 
 
 2. Set up the configuration file. Please look at the example configuration file and update the parameters as appropriate. This is meant for you to be able to use the software flexibly for catalogues where the column names might be slightly different (e.g., RA vs. ALPHA_J2000, etc.). Please surround strings with quotation marks. The following parameters are set in the configuration file:
 
